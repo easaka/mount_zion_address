@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PCG Mount Zion | Junior Youth & Children Membership</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    :root {
+      --pcg-blue: #003399;
+      --pcg-red: #CC0000;
+      --pcg-gold: #DAA520;
+    }
+    .bg-pcg-blue { background-color: var(--pcg-blue); }
+    .bg-pcg-red { background-color: var(--pcg-red); }
+    .text-pcg-blue { color: var(--pcg-blue); }
+    .text-pcg-red { color: var(--pcg-red); }
+    .gradient-pcg { background: linear-gradient(135deg, var(--pcg-blue) 0%, #002277 50%, var(--pcg-red) 100%); }
+    .card-pcg { transition: all 0.3s ease; border-left: 4px solid var(--pcg-red); }
+    .card-pcg:hover { transform: translateY(-5px); box-shadow: 0 20px 30px -12px rgba(0,0,0,0.15); }
+    .btn-pcg-primary { background-color: var(--pcg-blue); color: white; transition: all 0.2s; }
+    .btn-pcg-primary:hover { background-color: #002266; transform: scale(1.02); }
+    .stat-card { background: linear-gradient(145deg, #ffffff, #f8fafc); border-bottom: 3px solid var(--pcg-red); }
+    .form-input-catchy { transition: all 0.2s ease; border: 2px solid #e2e8f0; background: #fafcfc; }
+    .form-input-catchy:focus { border-color: var(--pcg-gold); box-shadow: 0 0 0 3px rgba(218,165,32,0.2); outline: none; }
+    .form-input-error { border-color: #dc2626 !important; background-color: #fef2f2 !important; }
+    .modal-content { animation: slideUp 0.3s ease-out; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .age-restriction-badge { background: linear-gradient(135deg, #fef3c7, #fde68a); border-left: 4px solid var(--pcg-red); }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    canvas { max-height: 300px; width: 100% !important; }
+    .attendance-table { max-height: 400px; overflow-y: auto; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div id="app">
+    <!-- Header -->
+    <div class="gradient-pcg text-white shadow-xl">
+      <div class="max-w-7xl mx-auto px-4 py-4">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div class="flex items-center space-x-4">
+            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+              <img src="./assets/pcg-logo.jpg" alt="PCG Logo" class="w-full h-full object-cover">
+            </div>
+            <div>
+              <h1 class="text-xl md:text-2xl font-bold tracking-wide">PRESBYTERIAN CHURCH OF GHANA</h1>
+              <p class="text-sm text-red-200 font-semibold">MOUNT ZION CONGREGATION · JUNIOR YOUTH & CHILDREN SERVICE</p>
+              <p class="text-xs text-blue-200 italic">"Train up a child in the way he should go" - Proverbs 22:6</p>
+            </div>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <div class="bg-white/20 backdrop-blur rounded-full px-4 py-2 text-sm font-bold"><i class="fas fa-dove mr-2"></i> Est. 2024</div>
+            <div class="bg-red-600/40 rounded-full px-4 py-2 text-sm"><i class="fas fa-cross"></i> Christ-Centered</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="max-w-7xl mx-auto px-4 mt-6">
+      <div class="flex flex-wrap gap-2 justify-center md:justify-start border-b-2 border-pcg-red pb-2">
+        <button @click="activeMainTab = 'dashboard'" :class="{'bg-pcg-blue text-white shadow-lg': activeMainTab === 'dashboard', 'bg-white text-pcg-blue border border-pcg-blue': activeMainTab !== 'dashboard'}" class="px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+        <button @click="activeMainTab = 'junior-youth'" :class="{'bg-pcg-blue text-white shadow-lg': activeMainTab === 'junior-youth', 'bg-white text-pcg-blue border border-pcg-blue': activeMainTab !== 'junior-youth'}" class="px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2"><i class="fas fa-users"></i> Junior Youth (12-18)</button>
+        <button @click="activeMainTab = 'children'" :class="{'bg-pcg-blue text-white shadow-lg': activeMainTab === 'children', 'bg-white text-pcg-blue border border-pcg-blue': activeMainTab !== 'children'}" class="px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2"><i class="fas fa-child"></i> Children (3-11)</button>
+        <button @click="activeMainTab = 'leaders'" :class="{'bg-pcg-blue text-white shadow-lg': activeMainTab === 'leaders', 'bg-white text-pcg-blue border border-pcg-blue': activeMainTab !== 'leaders'}" class="px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2"><i class="fas fa-chalkboard-user"></i> Leadership</button>
+        <button @click="activeMainTab = 'attendance'" :class="{'bg-pcg-blue text-white shadow-lg': activeMainTab === 'attendance', 'bg-white text-pcg-blue border border-pcg-blue': activeMainTab !== 'attendance'}" class="px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2"><i class="fas fa-calendar-check"></i> Attendance</button>
+        <button @click="activeMainTab = 'reports'" :class="{'bg-pcg-blue text-white shadow-lg': activeMainTab === 'reports', 'bg-white text-pcg-blue border border-pcg-blue': activeMainTab !== 'reports'}" class="px-5 py-2.5 rounded-lg font-semibold transition-all flex items-center gap-2"><i class="fas fa-chart-line"></i> Reports</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <!-- DASHBOARD -->
+      <div v-if="activeMainTab === 'dashboard'" class="fade-in">
+        <div class="bg-gradient-to-r from-blue-50 via-white to-red-50 rounded-2xl shadow-lg p-6 mb-8 border-l-8 border-pcg-red">
+          <div class="flex flex-col md:flex-row justify-between items-center">
+            <div>
+              <h2 class="text-2xl font-bold text-pcg-blue"><i class="fas fa-church mr-2 text-pcg-red"></i>Welcome to the Shepherd's Desk</h2>
+              <p class="text-gray-600 mt-2">Managing spiritual growth of Junior Youth and Children at Mount Zion</p>
+              <div class="flex gap-3 mt-3"><span class="bg-pcg-blue text-white text-xs px-3 py-1 rounded-full"><i class="fas fa-bible"></i> Faith Formation</span><span class="bg-pcg-red text-white text-xs px-3 py-1 rounded-full"><i class="fas fa-heart"></i> Nurturing Hearts</span></div>
+            </div>
+            <div class="mt-4 md:mt-0 text-center"><div class="w-24 h-24 bg-pcg-blue rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-xl">{{ totalSouls }}</div><p class="text-sm font-semibold text-pcg-blue mt-2">Total Young Souls</p></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div class="bg-white rounded-xl shadow-md p-6 stat-card"><div class="flex justify-between"><div><p class="text-pcg-blue text-sm font-bold">JUNIOR YOUTH</p><p class="text-4xl font-black text-pcg-blue">{{ stats.juniorYouth }}</p></div><i class="fas fa-user-graduate text-4xl text-pcg-red opacity-50"></i></div><div class="mt-2 text-xs text-gray-500">Ages 12-18</div></div>
+          <div class="bg-white rounded-xl shadow-md p-6 stat-card"><div class="flex justify-between"><div><p class="text-pcg-blue text-sm font-bold">CHILDREN</p><p class="text-4xl font-black text-pcg-blue">{{ stats.children }}</p></div><i class="fas fa-child text-4xl text-pcg-red opacity-50"></i></div><div class="mt-2 text-xs text-gray-500">Ages 3-11</div></div>
+          <div class="bg-white rounded-xl shadow-md p-6 stat-card"><div class="flex justify-between"><div><p class="text-pcg-blue text-sm font-bold">LEADERS</p><p class="text-4xl font-black text-pcg-blue">{{ stats.leaders }}</p></div><i class="fas fa-chalkboard-user text-4xl text-pcg-red opacity-50"></i></div><div class="mt-2 text-xs text-gray-500">Shepherds & Teachers</div></div>
+          <div class="bg-gradient-to-br from-pcg-blue to-pcg-red rounded-xl shadow-lg p-6 text-white"><div class="flex justify-between"><div><p class="text-white/90 text-sm font-bold">TOTAL</p><p class="text-4xl font-black">{{ stats.total }}</p></div><i class="fas fa-dove text-4xl opacity-50"></i></div><div class="mt-2 text-xs text-white/80">Growing in Grace</div></div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg text-pcg-blue mb-4"><i class="fas fa-bolt text-pcg-red mr-2"></i>Quick Actions</h3><div class="space-y-3"><button @click="activeMainTab='junior-youth'; openModal('junior-youth')" class="w-full btn-pcg-primary px-4 py-3 rounded-lg flex items-center justify-center gap-2"><i class="fas fa-user-plus"></i> Register Junior Youth</button><button @click="activeMainTab='children'; openModal('children')" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2"><i class="fas fa-baby-carriage"></i> Register Child</button><button @click="activeMainTab='attendance'" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2"><i class="fas fa-calendar-check"></i> Mark Attendance</button></div></div>
+          <div class="bg-pcg-blue rounded-xl shadow-md p-6 text-white"><i class="fas fa-quote-left text-3xl text-pcg-red mb-3"></i><p class="text-lg italic">"Let the little children come to me, and do not hinder them, for the kingdom of heaven belongs to such as these."</p><p class="mt-3 font-bold">— Matthew 19:14</p><hr class="my-3 border-white/20"><p class="text-sm"><i class="fas fa-praying-hands"></i> Raising godly leaders from a young age.</p></div>
+        </div>
+      </div>
+
+      <!-- JUNIOR YOUTH SECTION -->
+      <div v-if="activeMainTab === 'junior-youth'" class="fade-in">
+        <div class="flex flex-wrap justify-between items-center mb-6 gap-3"><h2 class="text-2xl font-bold text-pcg-blue"><i class="fas fa-users text-pcg-red mr-2"></i>Junior Youth Registry</h2><button @click="openModal('junior-youth')" class="btn-pcg-primary px-6 py-2.5 rounded-lg shadow-md"><i class="fas fa-plus-circle"></i> Add Youth</button></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-for="member in juniorYouthList" :key="member.id" class="bg-white rounded-xl shadow-lg overflow-hidden card-pcg"><div class="bg-pcg-blue p-4 text-white"><div class="flex justify-between"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-white text-pcg-blue flex items-center justify-center font-bold text-xl">{{ getInitials(member.full_name) }}</div><div><h3 class="font-bold text-lg">{{ member.full_name }}</h3><p class="text-xs text-blue-200">Age: {{ member.age }} yrs</p></div></div><i class="fas fa-user-graduate text-2xl opacity-50"></i></div></div><div class="p-4"><div class="space-y-2 text-sm"><p><i class="fas fa-school w-5 text-pcg-blue"></i> {{ member.school_name || '—' }}</p><p><i class="fas fa-phone w-5 text-pcg-blue"></i> Parent: {{ member.parent_phone || '—' }}</p><p><i class="fas fa-church w-5 text-pcg-blue"></i> Baptism: {{ member.baptism_status || 'Pending' }}</p><p><i class="fas fa-calendar-check text-green-600"></i> Attendance: {{ member.attendance_count || 0 }}</p></div><div class="flex justify-end gap-2 mt-4"><button @click="openAttendanceModal('junior-youth', member)" class="text-green-600 hover:bg-green-50 p-2 rounded-full"><i class="fas fa-check-circle"></i></button><button @click="editMember('junior-youth', member)" class="text-pcg-blue hover:bg-blue-50 p-2 rounded-full"><i class="fas fa-edit"></i></button><button @click="deleteMember('junior-youth', member.id)" class="text-pcg-red hover:bg-red-50 p-2 rounded-full"><i class="fas fa-trash"></i></button></div></div></div>
+          <div v-if="juniorYouthList.length === 0" class="col-span-full text-center py-16 bg-white rounded-xl"><i class="fas fa-users text-5xl text-gray-300 mb-3"></i><p class="text-gray-500">No junior youth registered yet.</p></div>
+        </div>
+      </div>
+
+      <!-- CHILDREN SECTION -->
+      <div v-if="activeMainTab === 'children'" class="fade-in">
+        <div class="flex flex-wrap justify-between items-center mb-6 gap-3"><h2 class="text-2xl font-bold text-pcg-blue"><i class="fas fa-child text-pcg-red mr-2"></i>Children Service</h2><button @click="openModal('children')" class="btn-pcg-primary px-6 py-2.5 rounded-lg shadow-md"><i class="fas fa-plus-circle"></i> Add Child</button></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-for="child in childrenList" :key="child.id" class="bg-white rounded-xl shadow-lg overflow-hidden card-pcg"><div class="bg-pcg-red p-4 text-white"><div class="flex justify-between"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-white text-pcg-red flex items-center justify-center font-bold text-xl">{{ getInitials(child.full_name) }}</div><div><h3 class="font-bold text-lg">{{ child.full_name }}</h3><p class="text-xs text-red-200">Age: {{ child.age }}</p></div></div><i class="fas fa-child text-2xl opacity-50"></i></div></div><div class="p-4"><div class="space-y-2 text-sm"><p><i class="fas fa-school w-5 text-pcg-blue"></i> {{ child.school_name || '—' }}</p><p><i class="fas fa-allergies w-5 text-pcg-blue"></i> Allergies: {{ child.allergies || 'None' }}</p><p><i class="fas fa-phone w-5 text-pcg-blue"></i> Parent: {{ child.parent_phone || '—' }}</p><p><i class="fas fa-church w-5 text-pcg-blue"></i> Baptism: {{ child.baptism_status || 'Pending' }}</p></div><div class="flex justify-end gap-2 mt-4"><button @click="openAttendanceModal('children', child)" class="text-green-600 p-2 rounded-full"><i class="fas fa-check-circle"></i></button><button @click="editMember('children', child)" class="text-pcg-blue p-2 rounded-full"><i class="fas fa-edit"></i></button><button @click="deleteMember('children', child.id)" class="text-pcg-red p-2 rounded-full"><i class="fas fa-trash"></i></button></div></div></div>
+          <div v-if="childrenList.length === 0" class="col-span-full text-center py-16 bg-white rounded-xl"><i class="fas fa-baby text-5xl text-gray-300 mb-3"></i><p class="text-gray-500">No children registered yet.</p></div>
+        </div>
+      </div>
+
+      <!-- LEADERS SECTION -->
+      <div v-if="activeMainTab === 'leaders'" class="fade-in"><div class="flex flex-wrap justify-between items-center mb-6 gap-3"><h2 class="text-2xl font-bold text-pcg-blue"><i class="fas fa-chalkboard-user text-pcg-red mr-2"></i>Leadership Team</h2><button @click="openModal('leaders')" class="btn-pcg-primary px-5 py-2 rounded-lg"><i class="fas fa-user-plus"></i> Add Leader</button></div><div class="grid md:grid-cols-2 gap-5"><div v-for="leader in leadersList" :key="leader.id" class="bg-white rounded-xl shadow-md p-5 flex items-center gap-4 border-l-4 border-pcg-red"><div class="w-16 h-16 rounded-full bg-pcg-blue flex items-center justify-center text-white text-2xl font-bold">{{ getInitials(leader.full_name) }}</div><div><p class="font-bold text-lg text-gray-800">{{ leader.full_name }}</p><p class="text-pcg-red font-semibold">{{ leader.role }}</p><p class="text-sm text-gray-500">{{ leader.department || 'Ministry' }} | {{ leader.responsibility?.slice(0,30) }}</p></div><div class="ml-auto flex gap-1"><button @click="editMember('leaders', leader)" class="text-pcg-blue p-2"><i class="fas fa-edit"></i></button><button @click="deleteMember('leaders', leader.id)" class="text-pcg-red p-2"><i class="fas fa-trash"></i></button></div></div></div></div>
+
+      <!-- ATTENDANCE SECTION -->
+      <div v-if="activeMainTab === 'attendance'" class="fade-in">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6"><h2 class="text-2xl font-bold text-pcg-blue"><i class="fas fa-calendar-check text-pcg-red mr-2"></i>Mark Attendance</h2><p class="text-gray-600">Select a member and date to record service attendance.</p></div>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg mb-4"><i class="fas fa-users text-pcg-blue"></i> Junior Youth Attendance</h3><select v-model="attendanceYouthId" class="w-full border-2 rounded-xl p-3 mb-3"><option value="">Select Junior Youth Member</option><option v-for="m in juniorYouthList" :value="m.id">{{ m.full_name }} (Age {{ m.age }})</option></select><input type="date" v-model="attendanceDate" class="w-full border-2 rounded-xl p-3 mb-3"><select v-model="attendanceServiceType" class="w-full border-2 rounded-xl p-3 mb-3"><option>Sunday Service</option><option>Junior Youth Fellowship</option><option>Bible Study</option><option>Special Event</option></select><button @click="markAttendance('junior_youth')" class="w-full btn-pcg-primary py-3 rounded-xl font-bold"><i class="fas fa-save"></i> Record Attendance</button></div>
+          <div class="bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg mb-4"><i class="fas fa-child text-pcg-red"></i> Children Attendance</h3><select v-model="attendanceChildId" class="w-full border-2 rounded-xl p-3 mb-3"><option value="">Select Child</option><option v-for="c in childrenList" :value="c.id">{{ c.full_name }} (Age {{ c.age }})</option></select><input type="date" v-model="attendanceDate" class="w-full border-2 rounded-xl p-3 mb-3"><select v-model="attendanceServiceType" class="w-full border-2 rounded-xl p-3 mb-3"><option>Sunday Service</option><option>Children's Church</option><option>Vacation Bible School</option></select><button @click="markAttendance('children_service')" class="w-full btn-pcg-primary py-3 rounded-xl font-bold"><i class="fas fa-save"></i> Record Attendance</button></div>
+        </div>
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg mb-4"><i class="fas fa-history"></i> Recent Attendance Records</h3><div class="overflow-x-auto attendance-table"><table class="w-full text-sm"><thead class="bg-gray-100 sticky top-0"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Member</th><th class="p-3 text-left">Type</th><th class="p-3 text-left">Service</th></tr></thead><tbody><tr v-for="rec in recentAttendance" :key="rec.id" class="border-b hover:bg-gray-50"><td class="p-3">{{ rec.service_date }}</td><td class="p-3 font-medium">{{ getMemberName(rec.member_type, rec.member_id) }}</td><td class="p-3"><span :class="rec.member_type === 'junior_youth' ? 'bg-blue-100 text-pcg-blue' : 'bg-red-100 text-pcg-red'" class="px-2 py-1 rounded-full text-xs">{{ rec.member_type === 'junior_youth' ? 'Junior Youth' : 'Children' }}</span></td><td class="p-3">{{ rec.service_type }}</td></tr><tr v-if="recentAttendance.length === 0"><td colspan="4" class="p-8 text-center text-gray-500">No attendance records yet. Start by marking attendance above.</td></tr></tbody></table></div></div>
+      </div>
+
+      <!-- REPORTS SECTION - FIXED CHARTS -->
+      <div v-if="activeMainTab === 'reports'" class="fade-in">
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+          <div class="bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg mb-4 text-pcg-blue"><i class="fas fa-chart-pie mr-2 text-pcg-red"></i>Membership Overview</h3><canvas id="membershipChart" width="400" height="300" style="max-height: 280px;"></canvas><div class="mt-4 text-center text-sm text-gray-500">Total Members: {{ stats.total }}</div></div>
+          <div class="bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg mb-4 text-pcg-blue"><i class="fas fa-church mr-2 text-pcg-red"></i>Baptism Status Distribution</h3><canvas id="baptismChart" width="400" height="300" style="max-height: 280px;"></canvas><div class="mt-4 text-center text-sm text-gray-500">Baptism readiness overview</div></div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+          <div class="bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg mb-4 text-pcg-blue"><i class="fas fa-chart-line mr-2 text-pcg-red"></i>Age Distribution</h3><canvas id="ageChart" width="400" height="300" style="max-height: 280px;"></canvas></div>
+          <div class="bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg mb-4 text-pcg-blue"><i class="fas fa-trophy mr-2 text-pcg-red"></i>Attendance Leaders</h3><div class="space-y-3 max-h-80 overflow-y-auto"><div v-for="(member, idx) in topAttenders" :key="member.id" class="flex items-center justify-between p-2 border-b"><div class="flex items-center gap-3"><span class="w-6 h-6 rounded-full bg-pcg-gold text-white flex items-center justify-center text-xs font-bold">{{ idx+1 }}</span><div><p class="font-semibold text-gray-800">{{ member.full_name }}</p><p class="text-xs text-gray-500">{{ member.type }}</p></div></div><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">{{ member.attendance_count || 0 }} services</span></div><div v-if="topAttenders.length === 0" class="text-center py-8 text-gray-500">No attendance data yet</div></div></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-md p-6"><h3 class="font-bold text-lg mb-4 text-pcg-blue"><i class="fas fa-calendar-week mr-2 text-pcg-red"></i>Weekly Attendance Trend</h3><canvas id="trendChart" width="800" height="300" style="max-height: 280px;"></canvas></div>
+      </div>
+    </div>
+
+    <!-- MODAL FORM -->
+    <div v-if="modalOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="modalOpen=false">
+      <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-auto shadow-2xl modal-content">
+        <div class="sticky top-0 bg-gradient-to-r from-pcg-blue to-pcg-red text-white px-6 py-4 flex justify-between items-center"><h3 class="text-xl font-bold"><i class="fas fa-praying-hands mr-2"></i>{{ isEditing ? '✏️ Update Profile' : '🌟 Register New Member' }}</h3><button @click="modalOpen=false" class="text-white text-3xl hover:text-red-200">&times;</button></div>
+        <div class="p-6">
+          <div v-if="modalType === 'junior-youth'" class="mb-5 p-3 age-restriction-badge rounded-lg text-sm"><i class="fas fa-info-circle text-pcg-red"></i> <strong>Age Restriction:</strong> Junior Youth membership is for ages <strong>12 to 18 years</strong>.</div>
+          <div v-if="modalType === 'children'" class="mb-5 p-3 age-restriction-badge rounded-lg text-sm"><i class="fas fa-info-circle text-pcg-red"></i> <strong>Age Restriction:</strong> Children Service is for ages <strong>3 to 11 years</strong>.</div>
+          <div v-if="modalType === 'junior-youth'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2"><label class="font-semibold">Full Name *</label><input v-model="formData.full_name" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label class="font-semibold">Age * (12-18)</label><input type="number" v-model="formData.age" @input="validateAge" :class="{'form-input-error': ageError}" class="form-input-catchy w-full border-2 rounded-xl p-3"><p v-if="ageError" class="text-red-500 text-xs mt-1">{{ ageError }}</p></div>
+            <div><label>Gender</label><select v-model="formData.gender" class="form-input-catchy w-full border-2 rounded-xl p-3"><option>Male</option><option>Female</option></select></div>
+            <div><label>Parent Name</label><input v-model="formData.parent_name" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Parent Phone</label><input v-model="formData.parent_phone" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Parent Email</label><input v-model="formData.parent_email" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div class="md:col-span-2"><label>Address</label><input v-model="formData.address" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>School</label><input v-model="formData.school_name" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Medical Conditions</label><input v-model="formData.medical_conditions" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div class="md:col-span-2"><label>Baptism Status</label><div class="grid grid-cols-3 gap-2 mt-1"><label class="flex items-center gap-2 p-2 border rounded-lg"><input type="radio" value="Baptized" v-model="formData.baptism_status"> Baptized</label><label class="flex items-center gap-2 p-2 border rounded-lg"><input type="radio" value="Not Baptized" v-model="formData.baptism_status"> Not Baptized</label><label class="flex items-center gap-2 p-2 border rounded-lg"><input type="radio" value="Pending" v-model="formData.baptism_status"> Pending</label></div></div>
+          </div>
+          <div v-if="modalType === 'children'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2"><label class="font-semibold">Full Name *</label><input v-model="formData.full_name" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label class="font-semibold">Age * (3-11)</label><input type="number" v-model="formData.age" @input="validateChildAge" :class="{'form-input-error': childAgeError}" class="form-input-catchy w-full border-2 rounded-xl p-3"><p v-if="childAgeError" class="text-red-500 text-xs mt-1">{{ childAgeError }}</p></div>
+            <div><label>Gender</label><select v-model="formData.gender" class="form-input-catchy w-full border-2 rounded-xl p-3"><option>Male</option><option>Female</option></select></div>
+            <div><label>Parent Name</label><input v-model="formData.parent_name" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Parent Phone</label><input v-model="formData.parent_phone" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Allergies</label><input v-model="formData.allergies" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div class="md:col-span-2"><label>Address</label><input v-model="formData.address" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>School</label><input v-model="formData.school_name" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div class="md:col-span-2"><label>Baptism Status</label><div class="grid grid-cols-3 gap-2 mt-1"><label class="flex items-center gap-2 p-2 border rounded-lg"><input type="radio" value="Baptized" v-model="formData.baptism_status"> Baptized</label><label class="flex items-center gap-2 p-2 border rounded-lg"><input type="radio" value="Dedicated" v-model="formData.baptism_status"> Dedicated</label><label class="flex items-center gap-2 p-2 border rounded-lg"><input type="radio" value="Pending" v-model="formData.baptism_status"> Pending</label></div></div>
+          </div>
+          <div v-if="modalType === 'leaders'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2"><label class="font-semibold">Full Name *</label><input v-model="formData.full_name" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label class="font-semibold">Email *</label><input type="email" v-model="formData.email" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Phone</label><input v-model="formData.phone" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label class="font-semibold">Role *</label><input v-model="formData.role" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Department</label><input v-model="formData.department" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Responsibility</label><input v-model="formData.responsibility" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+            <div><label>Join Date</label><input type="date" v-model="formData.join_date" class="form-input-catchy w-full border-2 rounded-xl p-3"></div>
+          </div>
+        </div>
+        <div class="border-t p-5 flex justify-end gap-3 bg-gray-100 rounded-b-2xl"><button @click="modalOpen=false" class="px-5 py-2 border-2 border-gray-300 rounded-full hover:bg-gray-200">Cancel</button><button @click="saveMember" class="px-6 py-2 bg-pcg-blue text-white rounded-full font-bold hover:bg-pcg-blue/90"><i class="fas fa-save"></i> Save</button></div>
+      </div>
+    </div>
+
+    <footer class="bg-pcg-blue text-white mt-12 py-6 text-center text-sm"><i class="fas fa-church mr-2"></i> Presbyterian Church of Ghana - Mount Zion Congregation | Soli Deo Gloria</footer>
+  </div>
+
+  <script>
+    const api = axios.create({ baseURL: '/api' });
+    let membershipChart = null, baptismChart = null, ageChart = null, trendChart = null;
+    
+    new Vue({
+      el: '#app',
+      data: {
+        activeMainTab: 'dashboard',
+        juniorYouthList: [], childrenList: [], leadersList: [], attendanceRecords: [],
+        stats: { juniorYouth: 0, children: 0, leaders: 0, total: 0 },
+        modalOpen: false, modalType: '', isEditing: false, editId: null, formData: {},
+        ageError: '', childAgeError: '',
+        attendanceYouthId: '', attendanceChildId: '', attendanceDate: new Date().toISOString().slice(0,10), attendanceServiceType: 'Sunday Service'
+      },
+      computed: {
+        totalSouls() { return this.stats.juniorYouth + this.stats.children; },
+        recentAttendance() { return this.attendanceRecords; },
+        topAttenders() {
+          let all = [...this.juniorYouthList.map(m=>({...m, type:'Junior Youth'})), ...this.childrenList.map(c=>({...c, type:'Children'}))];
+          return all.sort((a,b)=> (b.attendance_count||0) - (a.attendance_count||0)).slice(0,10);
+        }
+      },
+      mounted() { this.loadData(); setInterval(() => this.loadData(), 30000); },
+      methods: {
+        async loadData() {
+          try {
+            const [jr, ch, ld, st] = await Promise.all([api.get('/junior-youth'), api.get('/children'), api.get('/leaders'), api.get('/stats')]);
+            this.juniorYouthList = jr.data; this.childrenList = ch.data; this.leadersList = ld.data; this.stats = st.data;
+            try { const att = await api.get('/attendance/recent'); this.attendanceRecords = att.data || []; } catch(e) { this.attendanceRecords = []; }
+            this.updateAllCharts();
+          } catch(err) { console.warn("Demo mode"); this.demoData(); }
+        },
+        demoData() {
+         
+        },
+        updateAllCharts() {
+          setTimeout(() => {
+            // Membership Pie Chart
+            const membershipCtx = document.getElementById('membershipChart')?.getContext('2d');
+            if(membershipCtx) { if(membershipChart) membershipChart.destroy(); membershipChart = new Chart(membershipCtx, { type: 'pie', data: { labels: ['Junior Youth', 'Children', 'Leaders'], datasets: [{ data: [this.stats.juniorYouth, this.stats.children, this.stats.leaders], backgroundColor: ['#003399', '#CC0000', '#DAA520'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: true } }); }
+            // Baptism Bar Chart
+            const baptismCtx = document.getElementById('baptismChart')?.getContext('2d');
+            if(baptismCtx) { let baptized = [...this.juniorYouthList, ...this.childrenList].filter(m=>m.baptism_status==='Baptized').length; let dedicated = [...this.juniorYouthList, ...this.childrenList].filter(m=>m.baptism_status==='Dedicated').length; let pending = [...this.juniorYouthList, ...this.childrenList].filter(m=>m.baptism_status==='Pending' || m.baptism_status==='Not Baptized').length; if(baptismChart) baptismChart.destroy(); baptismChart = new Chart(baptismCtx, { type: 'bar', data: { labels: ['Baptized', 'Dedicated', 'Pending'], datasets: [{ data: [baptized, dedicated, pending], backgroundColor: ['#003399', '#DAA520', '#CC0000'], borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } } }); }
+            // Age Distribution
+            const ageCtx = document.getElementById('ageChart')?.getContext('2d');
+            if(ageCtx) { let ages = [...this.juniorYouthList.map(m=>m.age), ...this.childrenList.map(c=>c.age)]; let ageGroups = { '3-5':0, '6-8':0, '9-11':0, '12-14':0, '15-18':0 }; ages.forEach(a=>{ if(a>=3 && a<=5) ageGroups['3-5']++; else if(a>=6 && a<=8) ageGroups['6-8']++; else if(a>=9 && a<=11) ageGroups['9-11']++; else if(a>=12 && a<=14) ageGroups['12-14']++; else if(a>=15 && a<=18) ageGroups['15-18']++; }); if(ageChart) ageChart.destroy(); ageChart = new Chart(ageCtx, { type: 'bar', data: { labels: Object.keys(ageGroups), datasets: [{ data: Object.values(ageGroups), backgroundColor: '#003399', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } } }); }
+            // Weekly Trend
+            const trendCtx = document.getElementById('trendChart')?.getContext('2d');
+            if(trendCtx) { let last7Days = []; for(let i=6;i>=0;i--) { let d = new Date(); d.setDate(d.getDate()-i); last7Days.push(d.toISOString().slice(0,10)); } let counts = last7Days.map(date=> this.attendanceRecords.filter(r=>r.service_date===date).length); if(trendChart) trendChart.destroy(); trendChart = new Chart(trendCtx, { type: 'line', data: { labels: last7Days.map(d=>d.slice(5)), datasets: [{ data: counts, borderColor: '#CC0000', backgroundColor: 'rgba(204,0,0,0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#003399', pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } } }); }
+          }, 150);
+        },
+        getInitials(n) { return n ? n.split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase() : 'PC'; },
+        getMemberName(type, id) { let list = type === 'junior_youth' ? this.juniorYouthList : this.childrenList; let m = list.find(x=>x.id==id); return m ? m.full_name : 'Unknown'; },
+        validateAge() { let a = parseInt(this.formData.age); this.ageError = (a && (a<12 || a>18)) ? 'Age must be 12-18 years' : ''; },
+        validateChildAge() { let a = parseInt(this.formData.age); this.childAgeError = (a && (a<3 || a>11)) ? 'Age must be 3-11 years' : ''; },
+        openModal(type, member=null) { this.modalType = type; this.isEditing = !!member; this.editId = member?.id || null; this.ageError = ''; this.childAgeError = ''; this.formData = member ? {...member} : this.getEmptyForm(type); this.modalOpen = true; },
+        editMember(type, mem) { this.openModal(type, mem); },
+        openAttendanceModal(type, member) { this.activeMainTab = 'attendance'; if(type === 'junior-youth') this.attendanceYouthId = member.id; else this.attendanceChildId = member.id; },
+        getEmptyForm(type) { return type==='junior-youth' ? {full_name:'',age:'',gender:'Male',parent_name:'',parent_phone:'',parent_email:'',address:'',school_name:'',medical_conditions:'',baptism_status:'Pending'} : type==='children' ? {full_name:'',age:'',gender:'Male',parent_name:'',parent_phone:'',parent_email:'',address:'',school_name:'',allergies:'',medical_conditions:'',baptism_status:'Pending'} : {full_name:'',email:'',phone:'',role:'',department:'',responsibility:'',join_date:new Date().toISOString().slice(0,10)}; },
+        async saveMember() {
+          if(this.modalType === 'junior-youth') { let a = parseInt(this.formData.age); if(a<12 || a>18) { alert('Age must be 12-18 years'); return; } }
+          if(this.modalType === 'children') { let a = parseInt(this.formData.age); if(a<3 || a>11) { alert('Age must be 3-11 years'); return; } }
+          try { let method=this.isEditing?'put':'post', url = `/${this.modalType}${this.isEditing?'/'+this.editId:''}`; await api({method, url, data:this.formData}); this.modalOpen=false; this.loadData(); alert('Saved successfully!'); } catch(e) { alert('Error saving: ' + (e.response?.data?.error || e.message)); }
+        },
+        async deleteMember(type,id) { if(confirm('Remove this profile?')) { try { await api.delete(`/${type}/${id}`); this.loadData(); } catch(e) { alert('Delete failed'); } } },
+        async markAttendance(type) { let memberId = type === 'junior_youth' ? this.attendanceYouthId : this.attendanceChildId; if(!memberId) { alert('Select a member'); return; } if(!this.attendanceDate) { alert('Select date'); return; } try { await api.post('/attendance', { member_type: type, member_id: memberId, service_date: this.attendanceDate, service_type: this.attendanceServiceType, present: 1 }); alert('Attendance recorded!'); this.loadData(); this.attendanceYouthId = ''; this.attendanceChildId = ''; } catch(e) { alert('Error recording attendance'); } }
+      }
+    });
+  </script>
+</body>
+</html>
