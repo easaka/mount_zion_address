@@ -4,8 +4,6 @@ const path = require('path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const multer = require('multer');
-const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,21 +13,25 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// ============= UPDATED RATE LIMITING - MUCH HIGHER LIMITS =============
-// For church management system - generous limits to avoid 429 errors
+// ============= DATABASE SETUP - FIXED (Single definition) =============
+// Use persistent disk on Render, fallback to local for development
+const DB_PATH = process.env.RENDER ? '/data/pcg_church.db' : './pcg_church.db';
+console.log(`📁 Database path: ${DB_PATH}`);
+const db = new sqlite3.Database(DB_PATH);
+
+// ============= RATE LIMITING =============
 const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute window
-  max: 300, // Increased from 30 to 300 requests per minute (5 per second)
-  skipSuccessfulRequests: false, // Track all requests for accurate counting
-  standardHeaders: true, // Return rate limit info in headers
+  windowMs: 1 * 60 * 1000,
+  max: 300,
+  skipSuccessfulRequests: false,
+  standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please wait a moment before trying again.' }
 });
 
-// Even more generous for stats and get endpoints (read operations)
 const readLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 600, // 600 reads per minute (10 per second)
+  max: 600,
   skipSuccessfulRequests: false,
   message: { error: 'Too many read requests. Please slow down.' }
 });
@@ -42,10 +44,7 @@ app.use('/api/', (req, res, next) => {
   return limiter(req, res, next);
 });
 
-// Database setup
-const db = new sqlite3.Database('./pcg_church.db');
-
-// Initialize database tables
+// ============= INITIALIZE DATABASE TABLES =============
 db.serialize(() => {
   // Junior Youth members table (ages 12-18)
   db.run(`
@@ -153,19 +152,27 @@ db.serialize(() => {
 
   // Insert default admin leader
   db.get("SELECT * FROM leaders WHERE email = 'admin@pcg.org'", (err, row) => {
+    if (err) {
+      console.error("Error checking for admin:", err.message);
+      return;
+    }
     if (!row) {
       const defaultPassword = bcrypt.hashSync('admin123', 10);
       db.run(`
         INSERT INTO leaders (full_name, email, phone, role, department, responsibility, join_date, password_hash)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, ['Church Administrator', 'admin@pcg.org', '+233 20 000 0000', 'Administrator', 'Church Leadership', 'System Administration', '2024-01-01', defaultPassword]);
+      `, ['Church Administrator', 'admin@pcg.org', '+233 20 000 0000', 'Administrator', 'Church Leadership', 'System Administration', '2024-01-01', defaultPassword], (err) => {
+        if (err) console.error("Error creating admin:", err.message);
+        else console.log("✅ Default admin user created");
+      });
+    } else {
+      console.log("✅ Admin user already exists");
     }
   });
 });
 
 // ============= HELPER FUNCTIONS FOR VALIDATION =============
 
-// Validate Junior Youth Age (12-18)
 const validateJuniorYouthAge = (age) => {
   const ageNum = parseInt(age);
   if (isNaN(ageNum)) return { valid: false, message: 'Age must be a valid number' };
@@ -175,7 +182,6 @@ const validateJuniorYouthAge = (age) => {
   return { valid: true };
 };
 
-// Validate Children Service Age (3-11)
 const validateChildrenAge = (age) => {
   const ageNum = parseInt(age);
   if (isNaN(ageNum)) return { valid: false, message: 'Age must be a valid number' };
@@ -185,7 +191,6 @@ const validateChildrenAge = (age) => {
   return { valid: true };
 };
 
-// Validate required fields for members
 const validateRequiredFields = (data, requiredFields) => {
   for (const field of requiredFields) {
     if (!data[field] || data[field].toString().trim() === '') {
@@ -214,13 +219,11 @@ app.get('/api/junior-youth/:id', (req, res) => {
 });
 
 app.post('/api/junior-youth', (req, res) => {
-  // Validate required fields
   const requiredCheck = validateRequiredFields(req.body, ['full_name', 'age']);
   if (!requiredCheck.valid) {
     return res.status(400).json({ error: requiredCheck.message });
   }
   
-  // Validate age restriction
   const ageValidation = validateJuniorYouthAge(req.body.age);
   if (!ageValidation.valid) {
     return res.status(400).json({ error: ageValidation.message });
@@ -240,13 +243,11 @@ app.post('/api/junior-youth', (req, res) => {
 });
 
 app.put('/api/junior-youth/:id', (req, res) => {
-  // Validate required fields for update
   const requiredCheck = validateRequiredFields(req.body, ['full_name', 'age']);
   if (!requiredCheck.valid) {
     return res.status(400).json({ error: requiredCheck.message });
   }
   
-  // Validate age restriction
   const ageValidation = validateJuniorYouthAge(req.body.age);
   if (!ageValidation.valid) {
     return res.status(400).json({ error: ageValidation.message });
@@ -292,13 +293,11 @@ app.get('/api/children/:id', (req, res) => {
 });
 
 app.post('/api/children', (req, res) => {
-  // Validate required fields
   const requiredCheck = validateRequiredFields(req.body, ['full_name', 'age']);
   if (!requiredCheck.valid) {
     return res.status(400).json({ error: requiredCheck.message });
   }
   
-  // Validate age restriction for children
   const ageValidation = validateChildrenAge(req.body.age);
   if (!ageValidation.valid) {
     return res.status(400).json({ error: ageValidation.message });
@@ -318,13 +317,11 @@ app.post('/api/children', (req, res) => {
 });
 
 app.put('/api/children/:id', (req, res) => {
-  // Validate required fields for update
   const requiredCheck = validateRequiredFields(req.body, ['full_name', 'age']);
   if (!requiredCheck.valid) {
     return res.status(400).json({ error: requiredCheck.message });
   }
   
-  // Validate age restriction for children
   const ageValidation = validateChildrenAge(req.body.age);
   if (!ageValidation.valid) {
     return res.status(400).json({ error: ageValidation.message });
@@ -362,13 +359,11 @@ app.get('/api/leaders', (req, res) => {
 });
 
 app.post('/api/leaders', (req, res) => {
-  // Validate required fields for leaders
   const requiredCheck = validateRequiredFields(req.body, ['full_name', 'email', 'role']);
   if (!requiredCheck.valid) {
     return res.status(400).json({ error: requiredCheck.message });
   }
   
-  // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(req.body.email)) {
     return res.status(400).json({ error: 'Invalid email format' });
@@ -394,13 +389,11 @@ app.post('/api/leaders', (req, res) => {
 });
 
 app.put('/api/leaders/:id', (req, res) => {
-  // Validate required fields for update
   const requiredCheck = validateRequiredFields(req.body, ['full_name', 'email', 'role']);
   if (!requiredCheck.valid) {
     return res.status(400).json({ error: requiredCheck.message });
   }
   
-  // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(req.body.email)) {
     return res.status(400).json({ error: 'Invalid email format' });
@@ -437,12 +430,10 @@ app.delete('/api/leaders/:id', (req, res) => {
 app.post('/api/attendance', (req, res) => {
   const { member_type, member_id, service_date, service_type, present, notes } = req.body;
   
-  // Validate required fields
   if (!member_type || !member_id || !service_date) {
     return res.status(400).json({ error: 'member_type, member_id, and service_date are required' });
   }
   
-  // Validate member_type
   if (!['junior_youth', 'children_service'].includes(member_type)) {
     return res.status(400).json({ error: 'Invalid member_type. Must be junior_youth or children_service' });
   }
@@ -465,9 +456,8 @@ app.post('/api/attendance', (req, res) => {
 app.get('/api/attendance/:member_type/:member_id', (req, res) => {
   const { member_type, member_id } = req.params;
   
-  // Validate member_type
   if (!['junior_youth', 'children_service'].includes(member_type)) {
-    return res.status(400).json({ error: 'Invalid member_type. Must be junior_youth or children_service' });
+    return res.status(400).json({ error: 'Invalid member_type' });
   }
   
   db.all("SELECT * FROM attendance WHERE member_type = ? AND member_id = ? ORDER BY service_date DESC", 
@@ -479,7 +469,6 @@ app.get('/api/attendance/:member_type/:member_id', (req, res) => {
   );
 });
 
-// Get recent attendance (last 50 records)
 app.get('/api/attendance/recent', (req, res) => {
   db.all(`
     SELECT a.*, 
@@ -517,7 +506,7 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
-// Batch import endpoint for Junior Youth
+// Batch import endpoints
 app.post('/api/junior-youth/batch', (req, res) => {
   const { members } = req.body;
   if (!members || !Array.isArray(members) || members.length === 0) {
@@ -526,18 +515,19 @@ app.post('/api/junior-youth/batch', (req, res) => {
   
   const errors = [];
   const success = [];
+  let completed = 0;
   
   members.forEach((member, index) => {
-    // Validate required fields
     if (!member.full_name || !member.age) {
       errors.push({ index, error: 'Missing required fields (full_name, age)' });
+      completed++;
       return;
     }
     
-    // Validate age restriction
     const ageValidation = validateJuniorYouthAge(member.age);
     if (!ageValidation.valid) {
       errors.push({ index, error: ageValidation.message });
+      completed++;
       return;
     }
     
@@ -553,20 +543,19 @@ app.post('/api/junior-youth/batch', (req, res) => {
         } else {
           success.push({ index, id: this.lastID });
         }
+        completed++;
+        if (completed === members.length) {
+          res.json({ 
+            message: `Batch import completed. ${success.length} added, ${errors.length} failed.`,
+            success,
+            errors
+          });
+        }
       }
     );
   });
-  
-  setTimeout(() => {
-    res.json({ 
-      message: `Batch import completed. ${success.length} added, ${errors.length} failed.`,
-      success,
-      errors
-    });
-  }, 100);
 });
 
-// Batch import endpoint for Children
 app.post('/api/children/batch', (req, res) => {
   const { members } = req.body;
   if (!members || !Array.isArray(members) || members.length === 0) {
@@ -575,18 +564,19 @@ app.post('/api/children/batch', (req, res) => {
   
   const errors = [];
   const success = [];
+  let completed = 0;
   
   members.forEach((member, index) => {
-    // Validate required fields
     if (!member.full_name || !member.age) {
       errors.push({ index, error: 'Missing required fields (full_name, age)' });
+      completed++;
       return;
     }
     
-    // Validate age restriction for children
     const ageValidation = validateChildrenAge(member.age);
     if (!ageValidation.valid) {
       errors.push({ index, error: ageValidation.message });
+      completed++;
       return;
     }
     
@@ -602,17 +592,17 @@ app.post('/api/children/batch', (req, res) => {
         } else {
           success.push({ index, id: this.lastID });
         }
+        completed++;
+        if (completed === members.length) {
+          res.json({ 
+            message: `Batch import completed. ${success.length} added, ${errors.length} failed.`,
+            success,
+            errors
+          });
+        }
       }
     );
   });
-  
-  setTimeout(() => {
-    res.json({ 
-      message: `Batch import completed. ${success.length} added, ${errors.length} failed.`,
-      success,
-      errors
-    });
-  }, 100);
 });
 
 // Serve frontend
@@ -620,11 +610,11 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`🕊️ PCG Mount Zion Server running on http://localhost:${PORT}`);
-  console.log(`📊 Database: pcg_church.db`);
+  console.log(`\n🕊️  PCG Mount Zion Server running on http://localhost:${PORT}`);
+  console.log(`📁 Database path: ${DB_PATH}`);
   console.log(`🔑 Admin login: admin@pcg.org / admin123`);
-  console.log(`🎨 Theme: Presbyterian Blue, White & Red`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   console.log(`✅ Age Restrictions Enforced:`);
   console.log(`   • Junior Youth: 12-18 years`);
@@ -633,6 +623,5 @@ app.listen(PORT, () => {
   console.log(`🚦 Rate Limiting:`);
   console.log(`   • GET requests: 600 per minute (10 per second)`);
   console.log(`   • POST/PUT/DELETE: 300 per minute (5 per second)`);
-  console.log(`   • This should prevent 429 errors for normal usage`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 });

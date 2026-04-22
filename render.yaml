@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: pcg-membership
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1
