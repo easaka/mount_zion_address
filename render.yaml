@@ -4,10 +4,10 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: mkdir -p /data && node server.js
+    startCommand: node server.js
     envVars:
       - key: NODE_VERSION
-        value: 18.17.0
+        value: 18.17.0  # Change this from 24.x
     disk:
       name: sqlite-data
       mountPath: /data

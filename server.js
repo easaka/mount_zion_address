@@ -13,33 +13,45 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// ============= DATABASE SETUP - FIXED (with directory creation) =============
+// ============= DATABASE SETUP - CORRECT FOR RENDER =============
 const fs = require('fs');
 
-// Ensure /data directory exists on Render
+// Determine database path
+let DB_PATH;
 if (process.env.RENDER) {
+  // The disk mount point is automatically created by Render
+  // You don't need to create /data - just use the path
   const dataDir = '/data';
-  if (!fs.existsSync(dataDir)) {
-    console.log(`📁 Creating ${dataDir} directory...`);
-    fs.mkdirSync(dataDir, { recursive: true });
+  
+  // Check if the mount point exists and is writable
+  try {
+    fs.accessSync(dataDir, fs.constants.W_OK);
+    DB_PATH = '/data/pcg_church.db';
+    console.log(`✅ Using persistent disk at ${DB_PATH}`);
+  } catch (err) {
+    console.error(`❌ Disk mount not writable: ${err.message}`);
+    console.log(`⚠️  Falling back to local database (data won't persist!)`);
+    DB_PATH = './pcg_church.db';
   }
+} else {
+  // Local development
+  DB_PATH = './pcg_church.db';
+  console.log(`💻 Local development - using ${DB_PATH}`);
 }
 
-const DB_PATH = process.env.RENDER ? '/data/pcg_church.db' : './pcg_church.db';
 console.log(`📁 Database path: ${DB_PATH}`);
 
-// Open database with error handling
+// Open database - no directory creation needed
 const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
     console.error(`❌ Database error: ${err.message}`);
     if (err.code === 'SQLITE_CANTOPEN') {
-      console.error(`❌ Cannot open/create database at ${DB_PATH}`);
-      console.error(`💡 Check disk mount configuration in render.yaml`);
-      process.exit(1);
+      console.error(`❌ Cannot open database at ${DB_PATH}`);
+      console.error(`💡 Check your disk configuration in render.yaml`);
     }
-  } else {
-    console.log(`✅ Database connected successfully`);
+    process.exit(1);
   }
+  console.log(`✅ Database connected successfully`);
 });
 
 // ============= RATE LIMITING =============
