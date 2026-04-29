@@ -13,11 +13,34 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// ============= DATABASE SETUP - FIXED (Single definition) =============
-// Use persistent disk on Render, fallback to local for development
+// ============= DATABASE SETUP - FIXED (with directory creation) =============
+const fs = require('fs');
+
+// Ensure /data directory exists on Render
+if (process.env.RENDER) {
+  const dataDir = '/data';
+  if (!fs.existsSync(dataDir)) {
+    console.log(`📁 Creating ${dataDir} directory...`);
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+}
+
 const DB_PATH = process.env.RENDER ? '/data/pcg_church.db' : './pcg_church.db';
 console.log(`📁 Database path: ${DB_PATH}`);
-const db = new sqlite3.Database(DB_PATH);
+
+// Open database with error handling
+const db = new sqlite3.Database(DB_PATH, (err) => {
+  if (err) {
+    console.error(`❌ Database error: ${err.message}`);
+    if (err.code === 'SQLITE_CANTOPEN') {
+      console.error(`❌ Cannot open/create database at ${DB_PATH}`);
+      console.error(`💡 Check disk mount configuration in render.yaml`);
+      process.exit(1);
+    }
+  } else {
+    console.log(`✅ Database connected successfully`);
+  }
+});
 
 // ============= RATE LIMITING =============
 const limiter = rateLimit({
